@@ -1,1 +1,1454 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Nothing Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['Space Grotesk', 'monospace'],
+                    },
+                    colors: {
+                        void: {
+                            900: '#090a0f',
+                            800: '#121520',
+                            700: '#1c2234',
+                            600: '#2d3752',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+                            '50%': { transform: 'translateY(-10px) rotate(2deg)' },
+                        },
+                        glow: {
+                            '0%': { boxShadow: '0 0 15px rgba(139, 92, 246, 0.3)' },
+                            '100%': { boxShadow: '0 0 30px rgba(139, 92, 246, 0.7)' }
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        body {
+            background-color: #08090d;
+            color: #f3f4f6;
+            user-select: none;
+            overflow-x: hidden;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090a0f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d3752;
+            border-radius: 3px;
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #a78bfa, #60a5fa, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .glass-panel {
+            background: rgba(18, 21, 32, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-button {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+        .glass-button:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(167, 139, 250, 0.4);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans antialiased bg-void-900 text-slate-100 selection:bg-purple-500 selection:text-white">
 
+    <!-- Background Canvas -->
+    <canvas id="bgCanvas" class="fixed inset-0 pointer-events-none z-0 opacity-40"></canvas>
+
+    <!-- Main Wrapper -->
+    <div class="relative z-10 flex flex-col min-h-screen max-w-6xl mx-auto w-full px-4 py-4 sm:py-6">
+        
+        <header class="glass-panel rounded-2xl p-4 mb-6 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-900/30">
+                    <i class="fa-solid font-mono font-bold text-xl text-white">0</i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight gradient-text">The Nothing Game</h1>
+                    <p class="text-xs text-slate-400">The premier simulator of absolute non-existence</p>
+                </div>
+            </div>
+
+            <!-- Mode Selector Tabs -->
+            <div class="flex items-center bg-void-800/80 p-1.5 rounded-xl border border-white/5 space-x-1">
+                <button id="tabChallenge" onclick="switchTab('challenge')" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-purple-600/30 text-purple-300 border border-purple-500/30 shadow-sm flex items-center gap-2">
+                    <i class="fa-solid fa-hand-paper text-xs"></i>
+                    <span>Do Nothing</span>
+                </button>
+                <button id="tabIdle" onclick="switchTab('idle')" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-slate-400 hover:text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-cubes text-xs"></i>
+                    <span>Nothing Idle</span>
+                </button>
+                <button id="tabVoid" onclick="switchTab('void')" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-slate-400 hover:text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-atom text-xs"></i>
+                    <span>The Void</span>
+                </button>
+            </div>
+
+            <!-- Utility Controls -->
+            <div class="flex items-center space-x-3">
+                <button id="soundBtn" onclick="toggleAudio()" class="w-10 h-10 rounded-xl glass-button flex items-center justify-center text-slate-300 hover:text-purple-400" title="Toggle Sound">
+                    <i id="soundIcon" class="fa-solid fa-volume-high"></i>
+                </button>
+                <button onclick="showStatsModal()" class="w-10 h-10 rounded-xl glass-button flex items-center justify-center text-slate-300 hover:text-purple-400" title="Achievements & Stats">
+                    <i class="fa-solid fa-trophy"></i>
+                </button>
+            </div>
+        </header>
+
+        <main id="viewChallenge" class="flex-1 flex flex-col items-center justify-center relative min-h-[500px]">
+
+            <!-- Timer Card (Middle Thing) -->
+            <div id="timerCard" class="glass-panel p-8 sm:p-12 rounded-3xl max-w-lg w-full text-center relative z-20 flex flex-col items-center shadow-2xl border border-white/10 transition-all transform hover:scale-[1.01]">
+                
+                <!-- Trap Container positioned directly inside and on top of the middle card -->
+                <div id="trapsContainer" class="absolute inset-0 pointer-events-auto overflow-hidden z-30 rounded-3xl"></div>
+
+                <div id="statusBadge" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-6">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span id="statusText">Streak active: Doing nothing</span>
+                </div>
+
+                <!-- Circular Progress Ring -->
+                <div class="relative w-56 h-56 my-2 flex items-center justify-center">
+                    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="44" stroke="currentColor" stroke-width="4" class="text-void-800" fill="transparent" />
+                        <circle id="timerProgress" cx="50" cy="50" r="44" stroke="url(#gradient)" stroke-width="5" class="transition-all duration-300 ease-linear" stroke-linecap="round" fill="transparent" stroke-dasharray="276.46" stroke-dashoffset="0" />
+                        <defs>
+                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#a78bfa" />
+                                <stop offset="50%" stop-color="#3b82f6" />
+                                <stop offset="100%" stop-color="#ec4899" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span id="challengeTime" class="font-mono text-5xl font-extrabold tracking-tighter text-white">00:00</span>
+                        <span id="milliseconds" class="font-mono text-xs text-purple-400 mt-1">.00</span>
+                    </div>
+                </div>
+
+                <div class="mt-2 text-xs font-mono text-slate-400 flex items-center gap-2">
+                    <i class="fa-solid fa-crown text-amber-400"></i>
+                    <span>Personal Best: <strong id="bestTimeText" class="text-slate-200">0s</strong></span>
+                </div>
+
+                <!-- Narrator Monologue -->
+                <div class="mt-8 bg-void-800/90 border border-white/10 rounded-2xl p-4 w-full text-center relative shadow-inner min-h-[90px] flex items-center justify-center">
+                    <p id="narratorText" class="text-sm text-slate-300 italic font-medium leading-relaxed">
+                        "Welcome. Do not move your mouse. Do not touch your keyboard. Do not click anything. Just... exist."
+                    </p>
+                </div>
+
+                <div class="mt-6 flex items-center gap-4 text-xs text-slate-400">
+                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-mouse text-purple-400"></i> Mouse Still</div>
+                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-keyboard text-purple-400"></i> Keys Untouched</div>
+                    <div class="flex items-center gap-1.5"><i class="fa-solid fa-hand text-purple-400"></i> No Touch</div>
+                </div>
+            </div>
+        </main>
+
+        <main id="viewIdle" class="flex-1 flex-col gap-6 hidden">
+            <div class="glass-panel rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-purple-400">Total Accumulated</span>
+                    <div class="flex items-baseline gap-3 mt-1">
+                        <h2 id="idleCount" class="font-mono text-4xl sm:text-5xl font-extrabold text-white">0.00</h2>
+                        <span class="text-lg font-bold text-slate-400">Nothings</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">Generating <span id="idlePerSec" class="font-mono text-purple-300 font-bold">0.00</span> Nothing / second</p>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button id="clickNothingBtn" onclick="manualClickNothing()" class="px-6 py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 text-white font-bold text-sm shadow-lg shadow-purple-600/30 transition-all flex items-center gap-3">
+                        <i class="fa-solid fa-hand-pointer text-lg"></i>
+                        <span>Produce <span id="clickPowerText">1</span> Nothing</span>
+                    </button>
+                    <button onclick="prestigeIdle()" class="px-4 py-4 rounded-2xl glass-button text-xs font-bold text-slate-300 hover:text-amber-300 flex flex-col items-center justify-center gap-1">
+                        <i class="fa-solid fa-rotate text-amber-400"></i>
+                        <span>Void Crunch</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upgrades Category Tabs -->
+            <div class="flex items-center gap-2 border-b border-white/10 pb-3">
+                <button id="subtabGens" onclick="switchIdleSubtab('gens')" class="px-4 py-2 rounded-xl text-xs font-bold bg-purple-600/30 text-purple-300 border border-purple-500/30">
+                    <i class="fa-solid fa-cubes mr-1.5"></i> Generators (<span id="genTotalCount">0</span>)
+                </button>
+                <button id="subtabPerks" onclick="switchIdleSubtab('perks')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-bolt mr-1.5"></i> Special Perks & Modifiers
+                </button>
+            </div>
+
+            <!-- Generators Grid -->
+            <div id="idleGensGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="glass-panel p-5 rounded-2xl flex items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 text-xl">
+                            <i class="fa-solid fa-volume-xmark"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-100">Awkward Silence</h3>
+                            <p class="text-xs text-slate-400">+0.1 Nothing/sec</p>
+                            <span class="text-[11px] text-purple-400 font-mono">Owned: <span id="countUpg1">0</span></span>
+                        </div>
+                    </div>
+                    <button id="buyUpg1" onclick="buyUpgrade(1)" class="glass-button px-4 py-2.5 rounded-xl text-xs font-bold text-purple-300 hover:bg-purple-600 hover:text-white transition-all">
+                        Cost: <span id="costUpg1" class="font-mono">10</span>
+                    </button>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl flex items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xl">
+                            <i class="fa-solid fa-wind"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-100">Empty Vacuum</h3>
+                            <p class="text-xs text-slate-400">+1.0 Nothing/sec</p>
+                            <span class="text-[11px] text-blue-400 font-mono">Owned: <span id="countUpg2">0</span></span>
+                        </div>
+                    </div>
+                    <button id="buyUpg2" onclick="buyUpgrade(2)" class="glass-button px-4 py-2.5 rounded-xl text-xs font-bold text-blue-300 hover:bg-blue-600 hover:text-white transition-all">
+                        Cost: <span id="costUpg2" class="font-mono">50</span>
+                    </button>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl flex items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400 text-xl">
+                            <i class="fa-solid fa-brain"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-100">Blank Mind</h3>
+                            <p class="text-xs text-slate-400">+8.0 Nothing/sec</p>
+                            <span class="text-[11px] text-pink-400 font-mono">Owned: <span id="countUpg3">0</span></span>
+                        </div>
+                    </div>
+                    <button id="buyUpg3" onclick="buyUpgrade(3)" class="glass-button px-4 py-2.5 rounded-xl text-xs font-bold text-pink-300 hover:bg-pink-600 hover:text-white transition-all">
+                        Cost: <span id="costUpg3" class="font-mono">250</span>
+                    </button>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl flex items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-xl">
+                            <i class="fa-solid fa-infinity"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-100">Quantum Non-Existence</h3>
+                            <p class="text-xs text-slate-400">+50.0 Nothing/sec</p>
+                            <span class="text-[11px] text-amber-400 font-mono">Owned: <span id="countUpg4">0</span></span>
+                        </div>
+                    </div>
+                    <button id="buyUpg4" onclick="buyUpgrade(4)" class="glass-button px-4 py-2.5 rounded-xl text-xs font-bold text-amber-300 hover:bg-amber-600 hover:text-white transition-all">
+                        Cost: <span id="costUpg4" class="font-mono">1000</span>
+                    </button>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl flex items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 text-xl">
+                            <i class="fa-solid fa-circle-notch"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-100">Black Hole Singularity</h3>
+                            <p class="text-xs text-slate-400">+300.0 Nothing/sec</p>
+                            <span class="text-[11px] text-teal-400 font-mono">Owned: <span id="countUpg5">0</span></span>
+                        </div>
+                    </div>
+                    <button id="buyUpg5" onclick="buyUpgrade(5)" class="glass-button px-4 py-2.5 rounded-xl text-xs font-bold text-teal-300 hover:bg-teal-600 hover:text-white transition-all">
+                        Cost: <span id="costUpg5" class="font-mono">5000</span>
+                    </button>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl flex items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 text-xl">
+                            <i class="fa-solid fa-moon"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-100">Cosmic Boredom</h3>
+                            <p class="text-xs text-slate-400">+2,000.0 Nothing/sec</p>
+                            <span class="text-[11px] text-indigo-400 font-mono">Owned: <span id="countUpg6">0</span></span>
+                        </div>
+                    </div>
+                    <button id="buyUpg6" onclick="buyUpgrade(6)" class="glass-button px-4 py-2.5 rounded-xl text-xs font-bold text-indigo-300 hover:bg-indigo-600 hover:text-white transition-all">
+                        Cost: <span id="costUpg6" class="font-mono">25000</span>
+                    </button>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl flex items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl">
+                            <i class="fa-solid fa-ghost"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-100">Conceptual Absence</h3>
+                            <p class="text-xs text-slate-400">+15,000.0 Nothing/sec</p>
+                            <span class="text-[11px] text-emerald-400 font-mono">Owned: <span id="countUpg7">0</span></span>
+                        </div>
+                    </div>
+                    <button id="buyUpg7" onclick="buyUpgrade(7)" class="glass-button px-4 py-2.5 rounded-xl text-xs font-bold text-emerald-300 hover:bg-emerald-600 hover:text-white transition-all">
+                        Cost: <span id="costUpg7" class="font-mono">150000</span>
+                    </button>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl flex items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 text-xl">
+                            <i class="fa-solid fa-meteor"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-100">Ultimate Nihilism</h3>
+                            <p class="text-xs text-slate-400">+100,000.0 Nothing/sec</p>
+                            <span class="text-[11px] text-red-400 font-mono">Owned: <span id="countUpg8">0</span></span>
+                        </div>
+                    </div>
+                    <button id="buyUpg8" onclick="buyUpgrade(8)" class="glass-button px-4 py-2.5 rounded-xl text-xs font-bold text-red-300 hover:bg-red-600 hover:text-white transition-all">
+                        Cost: <span id="costUpg8" class="font-mono">1000000</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Perks Grid -->
+            <div id="idlePerksGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4 hidden">
+                <div class="glass-panel p-5 rounded-2xl flex items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 text-xl">
+                            <i class="fa-solid fa-hand-fist"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-100">Deep Meditation</h3>
+                            <p class="text-xs text-slate-400">+2 Nothings per manual click</p>
+                            <span id="statusPerk1" class="text-[11px] text-purple-400 font-mono">Not Purchased</span>
+                        </div>
+                    </div>
+                    <button id="buyPerk1" onclick="buyPerk(1)" class="glass-button px-4 py-2.5 rounded-xl text-xs font-bold text-purple-300 hover:bg-purple-600 hover:text-white transition-all">
+                        Cost: <span id="costPerk1" class="font-mono">150</span>
+                    </button>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl flex items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xl">
+                            <i class="fa-solid fa-bolt-lightning"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-100">Procrastination Mastery</h3>
+                            <p class="text-xs text-slate-400">+50% Total Nothing output rate</p>
+                            <span id="statusPerk2" class="text-[11px] text-blue-400 font-mono">Not Purchased</span>
+                        </div>
+                    </div>
+                    <button id="buyPerk2" onclick="buyPerk(2)" class="glass-button px-4 py-2.5 rounded-xl text-xs font-bold text-blue-300 hover:bg-blue-600 hover:text-white transition-all">
+                        Cost: <span id="costPerk2" class="font-mono">1000</span>
+                    </button>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl flex items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-100">Zen Shield</h3>
+                            <p class="text-xs text-slate-400">Absorbs 1 mistake per Do Nothing run</p>
+                            <span id="statusPerk3" class="text-[11px] text-emerald-400 font-mono">Not Purchased</span>
+                        </div>
+                    </div>
+                    <button id="buyPerk3" onclick="buyPerk(3)" class="glass-button px-4 py-2.5 rounded-xl text-xs font-bold text-emerald-300 hover:bg-emerald-600 hover:text-white transition-all">
+                        Cost: <span id="costPerk3" class="font-mono">3500</span>
+                    </button>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl flex items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-xl">
+                            <i class="fa-solid fa-clock font-bold"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-100">Ad Patience</h3>
+                            <p class="text-xs text-slate-400">Fake Ads dismiss 2 seconds faster</p>
+                            <span id="statusPerk4" class="text-[11px] text-amber-400 font-mono">Not Purchased</span>
+                        </div>
+                    </div>
+                    <button id="buyPerk4" onclick="buyPerk(4)" class="glass-button px-4 py-2.5 rounded-xl text-xs font-bold text-amber-300 hover:bg-amber-600 hover:text-white transition-all">
+                        Cost: <span id="costPerk4" class="font-mono">10000</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <main id="viewVoid" class="flex-1 flex flex-col hidden relative">
+            <div class="glass-panel rounded-3xl p-4 sm:p-6 mb-4 flex flex-wrap items-center justify-between gap-4 z-10">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles text-purple-400"></i> The Interactive Void Sandbox
+                    </h2>
+                    <p class="text-xs text-slate-400">Move your mouse or click to generate harmonic sound waves and gravity ripples in pure vacuum.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="clearVoidCanvas()" class="px-3 py-2 rounded-xl glass-button text-xs font-medium text-slate-300">
+                        <i class="fa-solid fa-trash-can mr-1"></i> Clear Particles
+                    </button>
+                    <button onclick="changeVoidColor()" class="px-3 py-2 rounded-xl glass-button text-xs font-medium text-purple-300">
+                        <i class="fa-solid fa-palette mr-1"></i> Shift Theme
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 glass-panel rounded-3xl overflow-hidden relative min-h-[400px]">
+                <canvas id="voidCanvas" class="w-full h-full cursor-crosshair block"></canvas>
+                <div class="absolute bottom-4 left-4 text-xs font-mono text-slate-500 pointer-events-none">
+                    Active Particles: <span id="particleCountText">0</span> | Click to trigger frequency explosion
+                </div>
+            </div>
+        </main>
+
+        <div id="statsModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 hidden">
+            <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-2xl relative border border-white/10">
+                <button onclick="closeStatsModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2">
+                    <i class="fa-solid fa-trophy text-amber-400"></i> Nothing Achievements
+                </h3>
+                <p class="text-xs text-slate-400 mb-6">Milestones for doing non-activities.</p>
+
+                <div class="space-y-3 max-h-72 overflow-y-auto pr-1">
+                    <div id="ach1" class="bg-void-800/80 p-3 rounded-xl border border-white/5 flex items-center gap-3 opacity-50">
+                        <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 text-lg">
+                            <i class="fa-solid fa-hourglass-start"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white">First Step into Zero</h4>
+                            <p class="text-[11px] text-slate-400">Do nothing for 10 seconds.</p>
+                        </div>
+                    </div>
+
+                    <div id="ach2" class="bg-void-800/80 p-3 rounded-xl border border-white/5 flex items-center gap-3 opacity-50">
+                        <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 text-lg">
+                            <i class="fa-solid fa-brain"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white">Zen Monk</h4>
+                            <p class="text-[11px] text-slate-400">Do nothing for 1 full minute.</p>
+                        </div>
+                    </div>
+
+                    <div id="ach3" class="bg-void-800/80 p-3 rounded-xl border border-white/5 flex items-center gap-3 opacity-50">
+                        <div class="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-400 text-lg">
+                            <i class="fa-solid fa-cookie-bite"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white">Bribed & Fooled</h4>
+                            <p class="text-[11px] text-slate-400">Fall for a narrator temptation trap.</p>
+                        </div>
+                    </div>
+
+                    <div id="ach4" class="bg-void-800/80 p-3 rounded-xl border border-white/5 flex items-center gap-3 opacity-50">
+                        <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 text-lg">
+                            <i class="fa-solid fa-infinity"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white">Master of Void</h4>
+                            <p class="text-[11px] text-slate-400">Accumulate 1,000 Nothings in Idle mode.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
+                    <span>Total Traps Failed: <strong id="trapFailCount" class="text-slate-200">0</strong></span>
+                    <button onclick="resetAllData()" class="text-red-400 hover:underline text-[11px]">Reset Saved Data</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="fakeAdModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden pointer-events-auto">
+            <div id="fakeAdCard" class="glass-panel p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-2xl relative border border-amber-500/30 text-center transform transition-all cursor-pointer">
+                <div class="absolute top-3 left-3 text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <i class="fa-solid fa-rectangle-ad"></i> SPONSORED AD
+                </div>
+                <div id="fakeAdCloseBtn" class="absolute top-3 right-3 w-6 h-6 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white flex items-center justify-center text-xs font-bold" title="Fake Close Button (TRAP!)">
+                    ✕
+                </div>
+
+                <div id="adContent" class="mt-4">
+                    <!-- Dynamic Ad Content -->
+                </div>
+
+                <div class="mt-5 pt-4 border-t border-white/10 flex flex-col items-center gap-1">
+                    <p class="text-[11px] text-slate-400 font-mono">
+                        Ad auto-dismisses in <span id="adCountdown" class="text-purple-400 font-bold text-sm">7</span>s
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Memory Out Modal -->
+        <div id="memoryModal" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center hidden pointer-events-auto">
+            <div id="memoryCard" onclick="handleMemorySkipClick(event)" class="glass-panel w-full h-full min-h-screen p-8 sm:p-12 rounded-none max-w-none flex flex-col items-center justify-center text-center transform transition-all cursor-pointer relative overflow-y-auto border-0">
+                <div class="max-w-xl w-full flex flex-col items-center">
+                    <div class="w-24 h-24 rounded-3xl bg-gradient-to-tr from-red-600 via-amber-600 to-purple-600 flex items-center justify-center mx-auto mb-6 shadow-2xl text-white text-5xl animate-pulse">
+                        <i class="fa-solid fa-memory"></i>
+                    </div>
+                    <span class="text-xs sm:text-sm font-extrabold tracking-widest text-red-400 uppercase bg-red-500/15 px-4 py-1.5 rounded-full border border-red-500/40">CRITICAL SYSTEM ERROR</span>
+                    <h3 class="text-3xl sm:text-5xl font-black text-white mt-4 tracking-tight">The game's memory ran out</h3>
+                    <p class="text-sm sm:text-base text-slate-300 mt-4 leading-relaxed max-w-md">
+                        Reallocating void RAM and purging non-existent buffers... Please wait while non-data reloads.
+                    </p>
+
+                    <!-- Loading Bar Container -->
+                    <div class="mt-8 w-full max-w-md bg-void-800 rounded-full h-5 overflow-hidden border border-white/20 relative p-0.5 shadow-inner">
+                        <div id="memoryProgressBar" class="bg-gradient-to-r from-red-500 via-amber-500 to-purple-500 h-full rounded-full transition-all duration-100 ease-linear" style="width: 0%"></div>
+                    </div>
+                    <div class="mt-2 w-full max-w-md text-right">
+                        <span id="memoryProgressText" class="text-sm font-mono font-bold text-amber-400">0%</span>
+                    </div>
+
+                    <!-- Skip Button (Appears at 50%) -->
+                    <div class="mt-6 w-full max-w-md">
+                        <button id="skipLoadingBtn" onclick="handleMemorySkipClick(event)" class="hidden w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-red-600 hover:from-amber-400 hover:to-red-500 text-white font-black text-sm uppercase tracking-wider shadow-xl shadow-amber-500/20 transition-all transform animate-bounce">
+                            ⚡ Skip Loading
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Failure Toast Notification -->
+        <div id="failToast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 glass-panel px-6 py-3 rounded-2xl border border-red-500/40 text-red-300 text-sm font-semibold flex items-center gap-3 shadow-2xl transition-all duration-300 opacity-0 pointer-events-none translate-y-4">
+            <i class="fa-solid fa-circle-exclamation text-red-400 text-lg"></i>
+            <span id="failReason">You moved! Timer reset.</span>
+        </div>
+
+    </div>
+
+    <script>
+        function safeGetStorageNumber(key, defaultValue) {
+            if (typeof defaultValue === 'undefined') defaultValue = 0;
+            try {
+                var val = localStorage.getItem(key);
+                if (val === null || val === undefined || val === '') return defaultValue;
+                var parsed = parseFloat(val);
+                return isNaN(parsed) ? defaultValue : parsed;
+            } catch (e) {
+                return defaultValue;
+            }
+        }
+
+        function safeGetStorageJSON(key, defaultValue) {
+            if (typeof defaultValue === 'undefined') defaultValue = {};
+            try {
+                var val = localStorage.getItem(key);
+                if (!val) return defaultValue;
+                var parsed = JSON.parse(val);
+                return (parsed && typeof parsed === 'object') ? parsed : defaultValue;
+            } catch (e) {
+                return defaultValue;
+            }
+        }
+
+        // Game State management
+        var state = {
+            audioEnabled: true,
+            currentTab: 'challenge',
+            challengeActive: true,
+            startTime: null,
+            elapsedTime: 0,
+            lastAdMinute: 0,
+            lastMemoryMinute: 0,
+            adTimerInterval: null,
+            memoryTimerInterval: null,
+            bestTime: safeGetStorageNumber('nothing_best_time', 0),
+            trapFails: safeGetStorageNumber('nothing_trap_fails', 0),
+            narratorIndex: 0,
+            idleCount: safeGetStorageNumber('nothing_idle_count', 0),
+            idlePerSec: 0,
+            clickPower: safeGetStorageNumber('nothing_click_power', 1),
+            shieldActive: false,
+            upgrades: {
+                1: { count: safeGetStorageNumber('nothing_upg1', 0), baseCost: 10, rate: 0.1 },
+                2: { count: safeGetStorageNumber('nothing_upg2', 0), baseCost: 50, rate: 1.0 },
+                3: { count: safeGetStorageNumber('nothing_upg3', 0), baseCost: 250, rate: 8.0 },
+                4: { count: safeGetStorageNumber('nothing_upg4', 0), baseCost: 1000, rate: 50.0 },
+                5: { count: safeGetStorageNumber('nothing_upg5', 0), baseCost: 5000, rate: 300.0 },
+                6: { count: safeGetStorageNumber('nothing_upg6', 0), baseCost: 25000, rate: 2000.0 },
+                7: { count: safeGetStorageNumber('nothing_upg7', 0), baseCost: 150000, rate: 15000.0 },
+                8: { count: safeGetStorageNumber('nothing_upg8', 0), baseCost: 1000000, rate: 100000.0 }
+            },
+            perks: {
+                1: { bought: safeGetStorageNumber('nothing_perk1', 0) === 1, cost: 150 },
+                2: { bought: safeGetStorageNumber('nothing_perk2', 0) === 1, cost: 1000 },
+                3: { bought: safeGetStorageNumber('nothing_perk3', 0) === 1, cost: 3500 },
+                4: { bought: safeGetStorageNumber('nothing_perk4', 0) === 1, cost: 10000 }
+            },
+            achievements: safeGetStorageJSON('nothing_achievements', { "ach1": false, "ach2": false, "ach3": false, "ach4": false })
+        };
+
+        var narratorQuotes = [
+            "Welcome. Do not move your mouse. Do not touch your keyboard. Do not click anything. Just... exist.",
+            "You're doing great at doing nothing! Keep going.",
+            "Are you bored yet? That's the test.",
+            "Whatever you do, DO NOT look at the bottom right corner.",
+            "Fun fact: By reading this, you are actively exercising your brain cells. Is that technically doing something?",
+            "Notice how quiet it is? Don't break the peace.",
+            "I wonder how long you can stay completely frozen...",
+            "Your finger wants to twitch. I can feel it.",
+            "Still here? Impressive patience!",
+            "You are now a certified master of zero productivity."
+        ];
+
+        var fakeAdsBank = [
+            {
+                title: "CLICK NOW FOR NOTHING PRO!",
+                desc: "Get 500% purer emptiness with Ultra Void Premium! Unlimited non-existence. Click now before offer expires!",
+                badge: "CLICK NOW!",
+                button: "CLICK NOW FOR FREE 🚀",
+                icon: "fa-rocket",
+                color: "from-purple-600 to-indigo-600"
+            },
+            {
+                title: "HOT VOIDS NEAR YOU - CLICK NOW!",
+                desc: "Single quantum vacuums within 5 miles want to collapse into black holes with you! Click now to connect!",
+                badge: "CLICK NOW!",
+                button: "CLICK NOW TO CHAT 💋",
+                icon: "fa-heart",
+                color: "from-pink-600 to-rose-600"
+            },
+            {
+                title: "CONGRATULATIONS! CLICK NOW TO CLAIM!",
+                desc: "You have won a brand new invisible Tesla Cyber-Nothing! Click now to claim your prize immediately!",
+                badge: "CLICK NOW!",
+                button: "CLICK NOW TO CLAIM CAR 🚗",
+                icon: "fa-trophy",
+                color: "from-amber-500 to-yellow-600"
+            },
+            {
+                title: "CRITICAL ALERT - CLICK NOW!",
+                desc: "Your system has 0 viruses! Click now immediately to install excitement and instant void access!",
+                badge: "CLICK NOW!",
+                button: "CLICK NOW TO FIX ⚠️",
+                icon: "fa-shield-halved",
+                color: "from-red-600 to-orange-600"
+            },
+            {
+                title: "SKIP AD - CLICK NOW!",
+                desc: "You are watching: '10 Hours of Complete Silence HD'. Click now to skip the ad!",
+                badge: "CLICK NOW!",
+                button: "CLICK NOW TO SKIP ▶",
+                icon: "fa-play-circle",
+                color: "from-blue-600 to-cyan-600"
+            }
+        ];
+
+        var audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    audioCtx = new AudioContextClass();
+                }
+            }
+        }
+
+        function playSynthTone(freq, type, duration, gainVal) {
+            if (typeof freq === 'undefined') freq = 440;
+            if (typeof type === 'undefined') type = 'sine';
+            if (typeof duration === 'undefined') duration = 0.2;
+            if (typeof gainVal === 'undefined') gainVal = 0.1;
+
+            if (!state.audioEnabled) return;
+            try {
+                initAudio();
+                if (!audioCtx) return;
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                var osc = audioCtx.createOscillator();
+                var gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                // Ignore audio errors
+            }
+        }
+
+        function playFailSound() {
+            playSynthTone(150, 'sawtooth', 0.4, 0.15);
+        }
+
+        function playSuccessSound() {
+            playSynthTone(523.25, 'sine', 0.2, 0.1);
+            setTimeout(function() { playSynthTone(659.25, 'sine', 0.2, 0.1); }, 100);
+            setTimeout(function() { playSynthTone(783.99, 'sine', 0.3, 0.1); }, 200);
+        }
+
+        function toggleAudio() {
+            state.audioEnabled = !state.audioEnabled;
+            var icon = document.getElementById('soundIcon');
+            if (state.audioEnabled) {
+                icon.className = 'fa-solid fa-volume-high';
+                playSynthTone(440, 'sine', 0.1, 0.05);
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark';
+            }
+        }
+
+        var challengeTimerInterval = null;
+        var lastTrapTime = Date.now();
+
+        function startChallengeTimer() {
+            state.startTime = Date.now();
+            state.challengeActive = true;
+            state.lastAdMinute = 0;
+            state.shieldActive = state.perks[3].bought;
+            mouseMoveThreshold = 0;
+            
+            var statusText = document.getElementById('statusText');
+            var statusBadge = document.getElementById('statusBadge');
+            if (statusText) {
+                statusText.innerText = state.shieldActive ? "Streak active (Zen Shield Ready)" : "Streak active: Doing nothing";
+            }
+            if (statusBadge) {
+                statusBadge.className = state.shieldActive 
+                    ? "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 mb-6"
+                    : "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-6";
+            }
+
+            if (challengeTimerInterval) clearInterval(challengeTimerInterval);
+
+            challengeTimerInterval = setInterval(function() {
+                if (!state.challengeActive || state.currentTab !== 'challenge') return;
+
+                state.elapsedTime = (Date.now() - state.startTime) / 1000;
+                
+                var mins = Math.floor(state.elapsedTime / 60);
+                var secs = Math.floor(state.elapsedTime % 60);
+                var ms = Math.floor((state.elapsedTime % 1) * 100);
+
+                var timeStr = (mins < 10 ? '0' + mins : mins) + ':' + (secs < 10 ? '0' + secs : secs);
+                var msStr = '.' + (ms < 10 ? '0' + ms : ms);
+
+                // Update Timer UI
+                var timeEl = document.getElementById('challengeTime');
+                if (timeEl) timeEl.innerText = timeStr;
+                var msEl = document.getElementById('milliseconds');
+                if (msEl) msEl.innerText = msStr;
+
+                // Trigger 1-minute Fake Ad Popup (odd minutes)
+                if (mins > 0 && mins > state.lastAdMinute && mins % 2 !== 0) {
+                    state.lastAdMinute = mins;
+                    triggerFakeAd();
+                }
+
+                // Trigger 2-minute Memory Ran Out Popup (even minutes)
+                if (mins > 0 && mins % 2 === 0 && mins > state.lastMemoryMinute) {
+                    state.lastMemoryMinute = mins;
+                    triggerMemoryPopUp();
+                }
+
+                // Timer Progress Circle Ring
+                var circleProgress = document.getElementById('timerProgress');
+                if (circleProgress) {
+                    var offset = 276.46 - ((state.elapsedTime % 60) / 60) * 276.46;
+                    circleProgress.style.strokeDashoffset = offset;
+                }
+
+                // High score update
+                if (state.elapsedTime > state.bestTime) {
+                    state.bestTime = state.elapsedTime;
+                    try { localStorage.setItem('nothing_best_time', state.bestTime.toString()); } catch (e) {}
+                    var bestEl = document.getElementById('bestTimeText');
+                    if (bestEl) bestEl.innerText = Math.floor(state.bestTime) + 's';
+                }
+
+                // Achievements Check
+                if (state.elapsedTime >= 10 && !state.achievements.ach1) unlockAchievement('ach1');
+                if (state.elapsedTime >= 60 && !state.achievements.ach2) unlockAchievement('ach2');
+
+                // Dynamic Narrator monologues
+                var currentSec = Math.floor(state.elapsedTime);
+                if (currentSec > 0 && currentSec % 8 === 0 && Math.floor(currentSec / 8) !== state.narratorIndex) {
+                    state.narratorIndex = Math.floor(currentSec / 8);
+                    var randomQuote = narratorQuotes[state.narratorIndex % narratorQuotes.length];
+                    var narratorEl = document.getElementById('narratorText');
+                    if (narratorEl) narratorEl.innerText = '"' + randomQuote + '"';
+                    playSynthTone(600, 'sine', 0.05, 0.03);
+                }
+
+                // Temptation traps spawner
+                if (Date.now() - lastTrapTime > 14000) {
+                    spawnTemptationTrap();
+                    lastTrapTime = Date.now();
+                }
+
+            }, 50);
+        }
+
+        function failChallenge(reason) {
+            if (typeof reason === 'undefined') reason = "You moved or clicked!";
+            if (!state.challengeActive) return;
+
+            // Zen Shield perk check
+            if (state.shieldActive) {
+                state.shieldActive = false;
+                playSuccessSound();
+                var toast = document.getElementById('failToast');
+                var failReasonEl = document.getElementById('failReason');
+                if (failReasonEl) failReasonEl.innerText = "🛡️ Zen Shield absorbed your mistake!";
+                if (toast) {
+                    toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+                    setTimeout(function() { toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); }, 2000);
+                }
+                var statusText = document.getElementById('statusText');
+                var statusBadge = document.getElementById('statusBadge');
+                if (statusText) statusText.innerText = "Streak active: Doing nothing";
+                if (statusBadge) statusBadge.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-6";
+                return;
+            }
+
+            state.challengeActive = false;
+            state.trapFails++;
+            try { localStorage.setItem('nothing_trap_fails', state.trapFails.toString()); } catch (e) {}
+            var failCountEl = document.getElementById('trapFailCount');
+            if (failCountEl) failCountEl.innerText = state.trapFails;
+
+            if (state.adTimerInterval) clearInterval(state.adTimerInterval);
+            if (state.memoryTimerInterval) clearInterval(state.memoryTimerInterval);
+            var adModal = document.getElementById('fakeAdModal');
+            if (adModal) adModal.classList.add('hidden');
+            var memModal = document.getElementById('memoryModal');
+            if (memModal) memModal.classList.add('hidden');
+
+            playFailSound();
+
+            // Reset timer elements display on failure
+            var timeEl = document.getElementById('challengeTime');
+            if (timeEl) timeEl.innerText = '00:00';
+            var msEl = document.getElementById('milliseconds');
+            if (msEl) msEl.innerText = '.00';
+            var circleProgress = document.getElementById('timerProgress');
+            if (circleProgress) circleProgress.style.strokeDashoffset = '276.46';
+
+            var statusText = document.getElementById('statusText');
+            var statusBadge = document.getElementById('statusBadge');
+            if (statusText) statusText.innerText = "Streak Broken!";
+            if (statusBadge) statusBadge.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20 mb-6";
+
+            // Show Toast
+            var toast = document.getElementById('failToast');
+            var failReasonEl = document.getElementById('failReason');
+            if (failReasonEl) failReasonEl.innerText = reason;
+            if (toast) toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+            
+            setTimeout(function() {
+                if (toast) toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+                startChallengeTimer();
+            }, 2500);
+        }
+
+        function triggerFakeAd() {
+            if (state.currentTab !== 'challenge' || !state.challengeActive) return;
+
+            var ad = fakeAdsBank[Math.floor(Math.random() * fakeAdsBank.length)];
+            var adModal = document.getElementById('fakeAdModal');
+            var adContent = document.getElementById('adContent');
+            if (!adModal || !adContent) return;
+
+            adContent.innerHTML = 
+                '<div class="w-16 h-16 rounded-2xl bg-gradient-to-tr ' + ad.color + ' flex items-center justify-center mx-auto mb-4 shadow-lg text-white text-3xl animate-bounce">' +
+                    '<i class="fa-solid ' + ad.icon + '"></i>' +
+                '</div>' +
+                '<span class="text-[10px] font-bold tracking-widest text-slate-400 uppercase bg-white/5 px-3 py-1 rounded-full border border-white/10">' + ad.badge + '</span>' +
+                '<h3 class="text-xl font-black text-white mt-3">' + ad.title + '</h3>' +
+                '<p class="text-xs text-slate-300 mt-2 leading-relaxed">' + ad.desc + '</p>' +
+                '<div class="mt-4">' +
+                    '<button class="w-full py-3 rounded-xl bg-gradient-to-r ' + ad.color + ' text-white font-bold text-xs shadow-lg transition-all">' +
+                        ad.button +
+                    '</button>' +
+                '</div>';
+
+            adModal.classList.remove('hidden');
+            playSynthTone(700, 'triangle', 0.2, 0.15);
+
+            var adCard = document.getElementById('fakeAdCard');
+            if (adCard) {
+                adCard.onclick = function(e) {
+                    if (e && e.stopPropagation) e.stopPropagation();
+                    if (state.adTimerInterval) clearInterval(state.adTimerInterval);
+                    adModal.classList.add('hidden');
+                    failChallenge("You fell for the fake ad trap!");
+                };
+            }
+
+            var timeLeft = state.perks[4].bought ? 5 : 7;
+            var countdownEl = document.getElementById('adCountdown');
+            if (countdownEl) countdownEl.innerText = timeLeft;
+
+            if (state.adTimerInterval) clearInterval(state.adTimerInterval);
+            state.adTimerInterval = setInterval(function() {
+                timeLeft--;
+                if (countdownEl) countdownEl.innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(state.adTimerInterval);
+                    adModal.classList.add('hidden');
+                    playSynthTone(880, 'sine', 0.15, 0.1);
+                }
+            }, 1000);
+        }
+
+        function triggerMemoryPopUp() {
+            if (state.currentTab !== 'challenge' || !state.challengeActive) return;
+
+            var memModal = document.getElementById('memoryModal');
+            var progressBar = document.getElementById('memoryProgressBar');
+            var progressText = document.getElementById('memoryProgressText');
+            var skipBtn = document.getElementById('skipLoadingBtn');
+
+            if (!memModal || !progressBar || !skipBtn) return;
+
+            progressBar.style.width = '0%';
+            if (progressText) progressText.innerText = '0%';
+            skipBtn.classList.add('hidden');
+            memModal.classList.remove('hidden');
+
+            playSynthTone(300, 'sawtooth', 0.3, 0.15);
+
+            var progress = 0;
+            if (state.memoryTimerInterval) clearInterval(state.memoryTimerInterval);
+
+            state.memoryTimerInterval = setInterval(function() {
+                progress += 2;
+                if (progress > 100) progress = 100;
+
+                progressBar.style.width = progress + '%';
+                if (progressText) progressText.innerText = progress + '%';
+
+                if (progress >= 50) {
+                    skipBtn.classList.remove('hidden');
+                }
+
+                if (progress >= 100) {
+                    clearInterval(state.memoryTimerInterval);
+                    memModal.classList.add('hidden');
+                    playSynthTone(880, 'sine', 0.15, 0.1);
+                }
+            }, 120);
+        }
+
+        function handleMemorySkipClick(e) {
+            if (e && e.stopPropagation) e.stopPropagation();
+            if (state.memoryTimerInterval) clearInterval(state.memoryTimerInterval);
+            var memModal = document.getElementById('memoryModal');
+            if (memModal) memModal.classList.add('hidden');
+            failChallenge("You fell for the 'Skip Loading' memory trap!");
+        }
+
+        function spawnTemptationTrap() {
+            if (state.currentTab !== 'challenge' || !state.challengeActive) return;
+
+            var container = document.getElementById('trapsContainer');
+            if (!container) return;
+
+            var traps = [
+                { text: "✨ Click for +1000 Nothings!", color: "from-amber-400 to-yellow-500" },
+                { text: "🎁 CLAIM MYSTERY GIFT", color: "from-purple-500 to-pink-500" },
+                { text: "⚠️ SYSTEM WARNING: Click to Fix", color: "from-red-500 to-orange-500" },
+                { text: "🍪 Free Cookie! (Click Me)", color: "from-amber-600 to-amber-800" },
+                { text: "🚀 Instant Speed Boost", color: "from-blue-500 to-cyan-500" }
+            ];
+
+            var trapData = traps[Math.floor(Math.random() * traps.length)];
+
+            var trapEl = document.createElement('div');
+            trapEl.className = 'absolute cursor-pointer px-3 py-1.5 rounded-xl bg-gradient-to-r ' + trapData.color + ' text-white font-bold text-xs shadow-lg animate-bounce transition-all duration-300 transform hover:scale-105 z-40 flex items-center gap-1.5';
+            trapEl.innerHTML = trapData.text;
+
+            var posX = Math.floor(Math.random() * 50) + 20;
+            var posY = Math.floor(Math.random() * 50) + 20;
+
+            trapEl.style.left = posX + '%';
+            trapEl.style.top = posY + '%';
+
+            trapEl.onclick = function(e) {
+                if (e && e.stopPropagation) e.stopPropagation();
+                unlockAchievement('ach3');
+                if (trapEl && trapEl.parentNode) {
+                    trapEl.parentNode.removeChild(trapEl);
+                }
+                failChallenge("Fell for a temptation trap!");
+            };
+
+            container.appendChild(trapEl);
+
+            setTimeout(function() {
+                if (trapEl && trapEl.parentNode) {
+                    trapEl.parentNode.removeChild(trapEl);
+                }
+            }, 6000);
+        }
+
+        function calculateIdlePerSec() {
+            var total = 0;
+            var genTotal = 0;
+            for (var id in state.upgrades) {
+                total += state.upgrades[id].count * state.upgrades[id].rate;
+                genTotal += state.upgrades[id].count;
+            }
+            if (state.perks[2].bought) {
+                total *= 1.5; // +50% multiplier from perk 2
+            }
+            state.idlePerSec = total;
+            var idleRateEl = document.getElementById('idlePerSec');
+            if (idleRateEl) idleRateEl.innerText = total.toFixed(1);
+            var genCountEl = document.getElementById('genTotalCount');
+            if (genCountEl) genCountEl.innerText = genTotal;
+        }
+
+        function switchIdleSubtab(subtab) {
+            var gensGrid = document.getElementById('idleGensGrid');
+            var perksGrid = document.getElementById('idlePerksGrid');
+            var tabGens = document.getElementById('subtabGens');
+            var tabPerks = document.getElementById('subtabPerks');
+
+            if (subtab === 'gens') {
+                if (gensGrid) gensGrid.classList.remove('hidden');
+                if (perksGrid) perksGrid.classList.add('hidden');
+                if (tabGens) tabGens.className = "px-4 py-2 rounded-xl text-xs font-bold bg-purple-600/30 text-purple-300 border border-purple-500/30";
+                if (tabPerks) tabPerks.className = "px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200";
+            } else {
+                if (gensGrid) gensGrid.classList.add('hidden');
+                if (perksGrid) perksGrid.classList.remove('hidden');
+                if (tabPerks) tabPerks.className = "px-4 py-2 rounded-xl text-xs font-bold bg-purple-600/30 text-purple-300 border border-purple-500/30";
+                if (tabGens) tabGens.className = "px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200";
+            }
+        }
+
+        function updateIdleUI() {
+            var idleCountEl = document.getElementById('idleCount');
+            if (idleCountEl) idleCountEl.innerText = state.idleCount.toFixed(2);
+            
+            var clickPowerText = document.getElementById('clickPowerText');
+            if (clickPowerText) clickPowerText.innerText = state.clickPower;
+
+            calculateIdlePerSec();
+
+            // Update Generators
+            for (var id in state.upgrades) {
+                var upg = state.upgrades[id];
+                var cost = Math.floor(upg.baseCost * Math.pow(1.15, upg.count));
+                var countEl = document.getElementById('countUpg' + id);
+                var costEl = document.getElementById('costUpg' + id);
+                if (countEl) countEl.innerText = upg.count;
+                if (costEl) costEl.innerText = cost;
+
+                var btn = document.getElementById('buyUpg' + id);
+                if (btn) {
+                    if (state.idleCount >= cost) {
+                        btn.classList.remove('opacity-50', 'pointer-events-none');
+                    } else {
+                        btn.classList.add('opacity-50', 'pointer-events-none');
+                    }
+                }
+            }
+
+            // Update Perks
+            for (var perkId in state.perks) {
+                var perk = state.perks[perkId];
+                var perkBtn = document.getElementById('buyPerk' + perkId);
+                var statusEl = document.getElementById('statusPerk' + perkId);
+
+                if (perk.bought) {
+                    if (statusEl) statusEl.innerText = "ACTIVE ✓";
+                    if (perkBtn) {
+                        perkBtn.innerText = "Purchased";
+                        perkBtn.classList.add('opacity-50', 'pointer-events-none');
+                    }
+                } else {
+                    if (statusEl) statusEl.innerText = "Not Purchased";
+                    if (perkBtn) {
+                        if (state.idleCount >= perk.cost) {
+                            perkBtn.classList.remove('opacity-50', 'pointer-events-none');
+                        } else {
+                            perkBtn.classList.add('opacity-50', 'pointer-events-none');
+                        }
+                    }
+                }
+            }
+        }
+
+        function manualClickNothing() {
+            state.idleCount += state.clickPower;
+            try { localStorage.setItem('nothing_idle_count', state.idleCount.toString()); } catch (e) {}
+            playSynthTone(800, 'sine', 0.05, 0.05);
+            updateIdleUI();
+
+            if (state.idleCount >= 1000 && !state.achievements.ach4) {
+                unlockAchievement('ach4');
+            }
+        }
+
+        function buyUpgrade(id) {
+            var upg = state.upgrades[id];
+            if (!upg) return;
+            var cost = Math.floor(upg.baseCost * Math.pow(1.15, upg.count));
+
+            if (state.idleCount >= cost) {
+                state.idleCount -= cost;
+                upg.count++;
+                try {
+                    localStorage.setItem('nothing_upg' + id, upg.count.toString());
+                    localStorage.setItem('nothing_idle_count', state.idleCount.toString());
+                } catch (e) {}
+                playSuccessSound();
+                updateIdleUI();
+            }
+        }
+
+        function buyPerk(id) {
+            var perk = state.perks[id];
+            if (!perk || perk.bought) return;
+
+            if (state.idleCount >= perk.cost) {
+                state.idleCount -= perk.cost;
+                perk.bought = true;
+                if (id === 1) state.clickPower = 3;
+
+                try {
+                    localStorage.setItem('nothing_perk' + id, '1');
+                    localStorage.setItem('nothing_idle_count', state.idleCount.toString());
+                    localStorage.setItem('nothing_click_power', state.clickPower.toString());
+                } catch (e) {}
+                playSuccessSound();
+                updateIdleUI();
+            }
+        }
+
+        function prestigeIdle() {
+            if (state.idleCount < 500) {
+                var toast = document.getElementById('failToast');
+                var reasonEl = document.getElementById('failReason');
+                if (reasonEl) reasonEl.innerText = "Need 500 Nothings for Void Crunch!";
+                if (toast) {
+                    toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+                    setTimeout(function() { toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); }, 2500);
+                }
+                return;
+            }
+            state.idleCount = 0;
+            for (var id in state.upgrades) {
+                state.upgrades[id].count = 0;
+                try { localStorage.setItem('nothing_upg' + id, '0'); } catch (e) {}
+            }
+            try { localStorage.setItem('nothing_idle_count', '0'); } catch (e) {}
+            playSynthTone(200, 'sawtooth', 0.5, 0.2);
+            updateIdleUI();
+        }
+
+        setInterval(function() {
+            if (state.idlePerSec > 0) {
+                state.idleCount += state.idlePerSec / 10;
+                try { localStorage.setItem('nothing_idle_count', state.idleCount.toString()); } catch (e) {}
+                if (state.currentTab === 'idle') updateIdleUI();
+
+                if (state.idleCount >= 1000 && !state.achievements.ach4) {
+                    unlockAchievement('ach4');
+                }
+            }
+        }, 100);
+
+        var voidCanvas = document.getElementById('voidCanvas');
+        var voidCtx = voidCanvas ? voidCanvas.getContext('2d') : null;
+        var voidParticles = [];
+        var voidColorHue = 260;
+
+        function resizeVoidCanvas() {
+            if (voidCanvas && voidCanvas.parentElement) {
+                voidCanvas.width = voidCanvas.parentElement.clientWidth;
+                voidCanvas.height = voidCanvas.parentElement.clientHeight;
+            }
+        }
+
+        function Particle(x, y) {
+            this.x = x;
+            this.y = y;
+            this.vx = (Math.random() - 0.5) * 4;
+            this.vy = (Math.random() - 0.5) * 4;
+            this.radius = Math.random() * 4 + 2;
+            this.hue = voidColorHue + Math.random() * 40 - 20;
+            this.alpha = 1;
+            this.decay = Math.random() * 0.015 + 0.005;
+        }
+
+        Particle.prototype.update = function() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.alpha -= this.decay;
+        };
+
+        Particle.prototype.draw = function(ctx) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'hsla(' + this.hue + ', 80%, 65%, ' + this.alpha + ')';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = 'hsla(' + this.hue + ', 80%, 65%, ' + this.alpha + ')';
+            ctx.fill();
+            ctx.restore();
+        };
+
+        function createVoidExplosion(x, y, count) {
+            if (typeof count === 'undefined') count = 25;
+            for (var i = 0; i < count; i++) {
+                voidParticles.push(new Particle(x, y));
+            }
+            playSynthTone(200 + Math.random() * 600, 'sine', 0.1, 0.05);
+        }
+
+        if (voidCanvas) {
+            voidCanvas.addEventListener('mousemove', function(e) {
+                if (state.currentTab !== 'void') return;
+                var rect = voidCanvas.getBoundingClientRect();
+                var x = e.clientX - rect.left;
+                var y = e.clientY - rect.top;
+                if (Math.random() < 0.4) {
+                    voidParticles.push(new Particle(x, y));
+                }
+            });
+
+            voidCanvas.addEventListener('click', function(e) {
+                if (state.currentTab !== 'void') return;
+                var rect = voidCanvas.getBoundingClientRect();
+                createVoidExplosion(e.clientX - rect.left, e.clientY - rect.top, 40);
+            });
+        }
+
+        function clearVoidCanvas() {
+            voidParticles = [];
+        }
+
+        function changeVoidColor() {
+            voidColorHue = (voidColorHue + 60) % 360;
+        }
+
+        function renderVoidLoop() {
+            if (state.currentTab === 'void' && voidCtx && voidCanvas) {
+                voidCtx.fillStyle = 'rgba(9, 10, 15, 0.2)';
+                voidCtx.fillRect(0, 0, voidCanvas.width, voidCanvas.height);
+
+                for (var i = voidParticles.length - 1; i >= 0; i--) {
+                    var p = voidParticles[i];
+                    p.update();
+                    p.draw(voidCtx);
+                    if (p.alpha <= 0) {
+                        voidParticles.splice(i, 1);
+                    }
+                }
+                var pCountEl = document.getElementById('particleCountText');
+                if (pCountEl) pCountEl.innerText = voidParticles.length;
+            }
+            requestAnimationFrame(renderVoidLoop);
+        }
+
+        var bgCanvas = document.getElementById('bgCanvas');
+        var bgCtx = bgCanvas ? bgCanvas.getContext('2d') : null;
+        var bgStars = [];
+
+        function initBgCanvas() {
+            if (!bgCanvas) return;
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+            bgStars = [];
+            for (var i = 0; i < 60; i++) {
+                bgStars.push({
+                    x: Math.random() * bgCanvas.width,
+                    y: Math.random() * bgCanvas.height,
+                    r: Math.random() * 1.5 + 0.5,
+                    alpha: Math.random()
+                });
+            }
+        }
+
+        function drawBgLoop() {
+            if (bgCtx && bgCanvas) {
+                bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+                for (var i = 0; i < bgStars.length; i++) {
+                    var star = bgStars[i];
+                    star.alpha += (Math.random() - 0.5) * 0.02;
+                    if (star.alpha < 0.1) star.alpha = 0.1;
+                    if (star.alpha > 0.8) star.alpha = 0.8;
+                    bgCtx.fillStyle = 'rgba(167, 139, 250, ' + star.alpha + ')';
+                    bgCtx.beginPath();
+                    bgCtx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+                    bgCtx.fill();
+                }
+            }
+            requestAnimationFrame(drawBgLoop);
+        }
+
+        function switchTab(tab) {
+            state.currentTab = tab;
+            
+            var challengeView = document.getElementById('viewChallenge');
+            var idleView = document.getElementById('viewIdle');
+            var voidView = document.getElementById('viewVoid');
+
+            if (challengeView) challengeView.classList.add('hidden');
+            if (idleView) {
+                idleView.classList.add('hidden');
+                idleView.classList.remove('flex');
+            }
+            if (voidView) voidView.classList.add('hidden');
+
+            ['Challenge', 'Idle', 'Void'].forEach(function(t) {
+                var btn = document.getElementById('tab' + t);
+                if (btn) {
+                    btn.className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-slate-400 hover:text-slate-200 flex items-center gap-2";
+                }
+            });
+
+            var activeBtn = document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+            if (activeBtn) {
+                activeBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-purple-600/30 text-purple-300 border border-purple-500/30 shadow-sm flex items-center gap-2";
+            }
+
+            if (tab === 'challenge') {
+                if (challengeView) challengeView.classList.remove('hidden');
+                startChallengeTimer();
+            } else if (tab === 'idle') {
+                if (idleView) {
+                    idleView.classList.remove('hidden');
+                    idleView.classList.add('flex');
+                }
+                updateIdleUI();
+            } else if (tab === 'void') {
+                if (voidView) voidView.classList.remove('hidden');
+                resizeVoidCanvas();
+            }
+        }
+
+        function unlockAchievement(id) {
+            state.achievements[id] = true;
+            try { localStorage.setItem('nothing_achievements', JSON.stringify(state.achievements)); } catch (e) {}
+            var el = document.getElementById(id);
+            if (el) {
+                el.classList.remove('opacity-50');
+                el.classList.add('border-purple-500/50', 'bg-purple-950/30');
+            }
+            playSuccessSound();
+        }
+
+        function loadAchievementsUI() {
+            for (var id in state.achievements) {
+                if (state.achievements[id]) {
+                    var el = document.getElementById(id);
+                    if (el) {
+                        el.classList.remove('opacity-50');
+                        el.classList.add('border-purple-500/50', 'bg-purple-950/30');
+                    }
+                }
+            }
+            var failCountEl = document.getElementById('trapFailCount');
+            if (failCountEl) failCountEl.innerText = state.trapFails;
+        }
+
+        function showStatsModal() {
+            loadAchievementsUI();
+            var statsModal = document.getElementById('statsModal');
+            if (statsModal) statsModal.classList.remove('hidden');
+        }
+
+        function closeStatsModal() {
+            var statsModal = document.getElementById('statsModal');
+            if (statsModal) statsModal.classList.add('hidden');
+        }
+
+        function resetAllData() {
+            try { localStorage.clear(); } catch (e) {}
+            location.reload();
+        }
+
+        var mouseMoveThreshold = 0;
+        window.addEventListener('mousemove', function(e) {
+            if (state.currentTab === 'challenge' && state.challengeActive) {
+                mouseMoveThreshold++;
+                if (mouseMoveThreshold > 6) {
+                    mouseMoveThreshold = 0;
+                    failChallenge("Mouse movement detected!");
+                }
+            }
+        });
+
+        window.addEventListener('keydown', function(e) {
+            if (state.currentTab === 'challenge' && state.challengeActive) {
+                failChallenge("Keyboard key press detected!");
+            }
+        });
+
+        window.addEventListener('touchstart', function(e) {
+            if (state.currentTab === 'challenge' && state.challengeActive) {
+                failChallenge("Touch interaction detected!");
+            }
+        });
+
+        window.addEventListener('resize', function() {
+            initBgCanvas();
+            resizeVoidCanvas();
+        });
+
+        window.addEventListener('load', function() {
+            initBgCanvas();
+            drawBgLoop();
+            renderVoidLoop();
+            
+            var bestTimeEl = document.getElementById('bestTimeText');
+            if (bestTimeEl) bestTimeEl.innerText = Math.floor(state.bestTime) + 's';
+            startChallengeTimer();
+        });
+    </script>
+</body>
+</html>
